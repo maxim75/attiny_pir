@@ -5,10 +5,11 @@
 
 #define CE_PIN PIN_PA5
 #define CSN_PIN PIN_PA7
-#define BATTERY_PIN PIN_PB1
+#define BATTERY_PIN PIN_PB0
 #define LED_PIN PIN_PB0
 
 char *strBuffer = new char[20];
+const char *deviceId = "PIR09";
 
 RF24 radio(CE_PIN, CSN_PIN); // CE, CSN
 
@@ -22,16 +23,46 @@ void wakeUp()
   wakeUpFlag = true; // ISR sets a flag
 }
 
+void send_message() {
+  Serial.printf(">>> %s", strBuffer);
+  radio.write(strBuffer, strlen(strBuffer));
+}
+
+int get_voltage_mv()
+{
+    PORTA.PIN3CTRL = PORT_ISC_INPUT_DISABLE_gc; // Disable digital buffer
+    ADC0.CTRLA = ADC_ENABLE_bm;                 // Enable ADC
+    ADC0.CTRLC = ADC_REFSEL_1024MV_gc;
+    ADC0.CTRLB = ADC_PRESC_DIV2_gc;       // use internal reference / prescaler: 16
+    ADC0.MUXPOS = ADC_MUXPOS_VDDDIV10_gc; // ADC_MUXPOS_AIN3_gc; // use A3 as input
+
+    ADC0.COMMAND = ADC_MODE_SINGLE_12BIT_gc | ADC_START_IMMEDIATE_gc; // Start Conversion
+    while ((ADC0.INTFLAGS & ADC_RESRDY_bm) == 0)
+    {
+    } // Waiting for the result
+    float result = ADC0.RESULT; // * 4096.0 / 4096.0 = 1
+    float v = result / .404f;
+    // Serial.print("Result: ");
+    // Serial.println(result);
+    // Serial.print("Voltage [mV]: ");
+    // Serial.println(v);
+    return (int)v;
+}
+
 void setup()
 {
   Serial.begin(9600, SERIAL_8N1);
 
   pinMode(interruptPin, INPUT); // Ensure the pin is input
-  pinMode(PIN_PB0, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+
+  digitalWrite(LED_PIN, HIGH);
+  delay(500);
+  digitalWrite(LED_PIN, LOW);
   // pinMode(PIN_PB2, OUTPUT);
   // pinMode(PIN_PB3, OUTPUT);
   // pinMode(PIN_PB0, OUTPUT);
-  attachInterrupt(digitalPinToInterrupt(interruptPin), wakeUp, RISING);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), wakeUp, FALLING);
 
   pinMode(0, OUTPUT);
   radio.begin();
@@ -46,19 +77,18 @@ void setup()
 
   radio.setDataRate(RF24_250KBPS);
   radio.openWritingPipe(address);
-  radio.setPALevel(RF24_PA_MAX, false);
+  radio.setPALevel(RF24_PA_HIGH, false);
   radio.stopListening();
 
   Serial.println("Sending");
-  const char text[] = "S";
-  radio.write(&text, sizeof(text));
+  sprintf(strBuffer, "%s_test", deviceId, 0);
+  send_message();
   Serial.println("Sent");
   delay(5000);
 }
 
 void loop()
 {
-  Serial.println("loop");
   if (!wakeUpFlag)
   {
 
@@ -85,11 +115,14 @@ void loop()
   // Serial.printf("Batt: %d", b);
   // pinMode(BATTERY_PIN, OUTPUT); // Ensure the pin is input
 
-  sprintf(strBuffer, "PIR04_10%04d", 0);
+  int voltage_mv = get_voltage_mv();
+  sprintf(strBuffer, "%s_10%04d", deviceId, voltage_mv);
   Serial.printf(strBuffer);
   radio.write(strBuffer, strlen(strBuffer));
   // Serial.println("1234");
-  digitalWrite(PIN_PB0, HIGH);
-  delay(500);
-  digitalWrite(PIN_PB0, LOW);
+  digitalWrite(LED_PIN, HIGH);
+  delay(200);
+  digitalWrite(LED_PIN, LOW);
 }
+
+
