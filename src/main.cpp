@@ -18,7 +18,7 @@ constexpr rf24_pa_dbm_e RF24_POWER_LEVEL = RF24_PA_LOW;
 constexpr uint8_t MESSAGE_BUFFER_SIZE = 32;
 
 // Device Configuration
-const char* DEVICE_ID = "PIR11";
+const char* DEVICE_ID = "PIR12";
 constexpr int LIGHT_THRESHOLD = 800;           // Threshold for light sensor
 constexpr float BATTERY_VOLTAGE_MULTIPLIER = 6.46f;
 
