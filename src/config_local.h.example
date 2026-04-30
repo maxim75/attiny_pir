@@ -1,0 +1,6 @@
+#pragma once
+
+// Copy this file to config_local.h and set your own values.
+#define RADIO_ADDRESS   0xFAB7C2F0E2LL
+#define DEVICE_ID       "PIR14"
+#define LIGHT_THRESHOLD 950

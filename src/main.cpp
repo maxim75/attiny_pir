@@ -3,6 +3,10 @@
 #include <RF24.h>
 #include <avr/sleep.h>
 
+#if __has_include("config_local.h")
+#include "config_local.h"
+#endif
+
 // Pin Definitions
 constexpr uint8_t CE_PIN = PIN_PA5;           // RF24 Chip Enable pin
 constexpr uint8_t CSN_PIN = PIN_PA7;          // RF24 Chip Select pin
@@ -12,14 +16,20 @@ constexpr uint8_t LIGHT_SENSOR_PIN = PIN_PB1; // Light sensor input pin
 constexpr uint8_t INTERRUPT_PIN = PIN_PA6;     // PIR sensor interrupt pin
 
 // RF24 Configuration
-constexpr uint64_t RADIO_ADDRESS = 0xFAB7C2F0E2LL;
+#ifndef RADIO_ADDRESS
+#define RADIO_ADDRESS 0xFAB7C2F0E2LL  // fallback — define in config_local.h
+#endif
 constexpr bool LNA_ENABLE = false;
 constexpr rf24_pa_dbm_e RF24_POWER_LEVEL = RF24_PA_LOW;
 constexpr uint8_t MESSAGE_BUFFER_SIZE = 32;
 
 // Device Configuration
-const char* DEVICE_ID = "PIR12";
-constexpr int LIGHT_THRESHOLD = 800;           // Threshold for light sensor
+#ifndef DEVICE_ID
+#define DEVICE_ID "PIR14"
+#endif
+#ifndef LIGHT_THRESHOLD
+#define LIGHT_THRESHOLD 950
+#endif
 constexpr float BATTERY_VOLTAGE_MULTIPLIER = 6.46f;
 
 // Global variables
@@ -92,11 +102,11 @@ void setup() {
         }
     }
 
-    // Send initial test message
-    Serial.println("Sending test message...");
-    snprintf(messageBuffer, MESSAGE_BUFFER_SIZE, "%s_test", DEVICE_ID);
+    // Send initial start message
+    Serial.println("Sending start message...");
+    snprintf(messageBuffer, MESSAGE_BUFFER_SIZE, "%s_start", DEVICE_ID);
     sendMessage(messageBuffer);
-    Serial.println("Test message sent");
+    Serial.println("Start message sent");
     delay(5000);
 }
 
@@ -146,7 +156,7 @@ void sendSensorData(int batteryVoltage, int lightLevel) {
     
     Serial.println(messageBuffer);
     
-    if (lightLevel < LIGHT_THRESHOLD || true) {  // TODO: Remove "|| true" after testing
+    if (lightLevel < LIGHT_THRESHOLD) {  // TODO: Remove "|| true" after testing
         sendMessage(messageBuffer);
         blinkLed(200);  // Confirmation blink
     }
