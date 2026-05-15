@@ -14,6 +14,7 @@ constexpr uint8_t BATTERY_PIN = PIN_PA4;      // Battery voltage monitoring pin
 constexpr uint8_t LED_PIN = PIN_PB0;          // Status LED pin
 constexpr uint8_t LIGHT_SENSOR_PIN = PIN_PB1; // Light sensor input pin
 constexpr uint8_t INTERRUPT_PIN = PIN_PA6;     // PIR sensor interrupt pin
+constexpr uint8_t LIGHT_SENSOR_POWER_PIN = PIN_PB3; // Power supply for light sensor
 
 // RF24 Configuration
 #ifndef RADIO_ADDRESS
@@ -29,6 +30,9 @@ constexpr uint8_t MESSAGE_BUFFER_SIZE = 32;
 #endif
 #ifndef LIGHT_THRESHOLD
 #define LIGHT_THRESHOLD 950
+#endif
+#ifndef LIGHT_THRESHOLD_ENABLE
+#define LIGHT_THRESHOLD_ENABLE 0
 #endif
 constexpr float BATTERY_VOLTAGE_MULTIPLIER = 6.46f;
 
@@ -47,6 +51,7 @@ void initializePins() {
     pinMode(INTERRUPT_PIN, INPUT);
     pinMode(LIGHT_SENSOR_PIN, INPUT);
     pinMode(LED_PIN, OUTPUT);
+    pinMode(LIGHT_SENSOR_POWER_PIN, OUTPUT);
     pinMode(0, OUTPUT);  // Reserved pin configuration
 }
 
@@ -129,7 +134,10 @@ int readBatteryVoltage() {
 // Read light sensor value
 int readLightSensor() {
     blinkLed(200);  // Brief LED flash while reading
-    return analogRead(LIGHT_SENSOR_PIN);
+    digitalWrite(LIGHT_SENSOR_POWER_PIN, HIGH);
+    int value = analogRead(LIGHT_SENSOR_PIN);
+    digitalWrite(LIGHT_SENSOR_POWER_PIN, LOW);
+    return value;
 }
 
 // Enter sleep mode to conserve power
@@ -156,7 +164,7 @@ void sendSensorData(int batteryVoltage, int lightLevel) {
     
     Serial.println(messageBuffer);
     
-    if (lightLevel < LIGHT_THRESHOLD) {  // TODO: Remove "|| true" after testing
+    if (!LIGHT_THRESHOLD_ENABLE || lightLevel < LIGHT_THRESHOLD) {
         sendMessage(messageBuffer);
         blinkLed(200);  // Confirmation blink
     }
